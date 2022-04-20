@@ -55,13 +55,13 @@ class Transport {
 
   template <typename M>
   auto CreateTransmitter(const RoleAttributes& attr,
-                         const OptionalMode& mode = OptionalMode::HYBRID) ->
+                         const OptionalMode& mode = OptionalMode::RTPS) ->
       typename std::shared_ptr<Transmitter<M>>;
 
   template <typename M>
   auto CreateReceiver(const RoleAttributes& attr,
                       const typename Receiver<M>::MessageListener& msg_listener,
-                      const OptionalMode& mode = OptionalMode::HYBRID) ->
+                      const OptionalMode& mode = OptionalMode::RTPS) ->
       typename std::shared_ptr<Receiver<M>>;
 
   ParticipantPtr participant() const { return participant_; }
@@ -107,6 +107,7 @@ auto Transport::CreateTransmitter(const RoleAttributes& attr,
     case OptionalMode::RTPS:
       transmitter =
           std::make_shared<RtpsTransmitter<M>>(modified_attr, participant());
+      AINFO << "Created RTPS transmitter.";
       break;
 
     default:
@@ -151,6 +152,7 @@ auto Transport::CreateReceiver(
 
     case OptionalMode::RTPS:
       receiver = std::make_shared<RtpsReceiver<M>>(modified_attr, msg_listener);
+      AINFO << "Created RPTS Receiver.";
       break;
 
     default:

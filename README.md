@@ -72,7 +72,7 @@ bazel test //...
 ## Compile 
 Compile examples use:
 ```bash
-bazel build //examples/cyber/common_component_example/...
+bazel build //examples/cyber/helloworld_example/...
 ```
 ## Run
 
@@ -86,21 +86,30 @@ export GLOG_alsologtostderr=1
 
 In terminal #1 run
 ```bash
-cyber_launch start examples/cyber/common_component_example/common.launch
+bazel run  //examples/cyber/helloworld_example:publisher
 ```
 In terminal #2 run
 ```bash
-bazel run  //examples/cyber/common_component_example:channel_test_writer
-```
-In terminal #3 run
-```bash
-bazel run //examples/cyber/common_component_example:channel_prediction_writer
+bazel run //examples/cyber/helloworld_example:subscriber
 ```
 
 # DDS in CyberRT
-CyberRT中有两个模块与DDS有关。
-- 节点的上下线和存活状态维护，相关代码位于./cyber/service_discovery/communication目录下。
-- CyberRT支持三种通信方式，分别是Intra，Shm和rtps。其中Intra和Shm是CyberRT自行设计的，rtps即使用Fastrtps。相关代码位于./cyber/transport/rtps目录下。
+
+## Participant类
+CyberRT将Fast DDS的eprosima::fastrtps::Participant封装成一个新类apollo::cyber::transport::Participant，代码位于./cyber/transport/rtps/participant.h及participan.cc中。apollo::cyber::transport::Participant类提供了创建Participant对象的方法fastrtps_participant()。
+
+## Participant对象的建立
+Transport类是一个全局单例，在Transport类的构造函数中调用Transport::CreateParticipant()创建Participant对象，其他所有类的ParticipantPtr均指向这同一个对象。
+
+### fastrtps_participant()调用的时机
+* rtps_transmitter
+每个Writer对象创建时，在其init()函数中调用Transport::CreateTransmitter()方法自动创建一个Transmitter对象，RTPSTransmitter类包含一个apollo::cyber::transport::Participant类指针participant_，在其enable()函数里调用publisher_ = eprosima::fastrtps::Domain::createPublisher(participant_->fastrtps_participant(), pub_attr)创建eprosima::fastrtps::publiisher
+* rtps_dispatcher
+rtps_dispatcher是全局单例，拥有apollo::cyber::transport::Participant类指针，负责接收消息并分发给对应的RTPSReceiver。dispatcher存有channel_id到eprosima::fastrtps::subscriber+subcriber_listener的map。RTPSReceiver在建立时调用enable()函数向RTPSdispatcher注册回调函数。
+* topology_manager
+负责节点发现的类，包含channel_manager，node_manager和service_manager. 在topology_manager创建时，调用start_discovery(fastrtps_participant())向三个manager传递Participant指针。
+
+
 # Documents
 
 - [Apollo Cyber RT Quick Start](https://github.com/ApolloAuto/apollo/tree/master/docs/cyber/CyberRT_Quick_Start.md):
